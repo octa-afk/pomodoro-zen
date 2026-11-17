@@ -1,0 +1,7 @@
+# Empaquetado de distribución
+*.zip
+*.xpi
+
+# Sistema
+.DS_Store
+Thumbs.db

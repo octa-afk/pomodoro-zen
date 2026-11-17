@@ -1,0 +1,208 @@
+/* Pomodoro popup — estilo Windows 11 (Fluent).
+   Claro/oscuro según el tema del navegador (prefers-color-scheme). */
+
+:root {
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+
+  /* Base (Fluent claro). popup.js puede sobrescribir estas variables con
+     los colores del tema de Zen cuando la opción está activada. */
+  --bg: #f3f3f3;
+  --card: #fbfbfb;
+  --text: #1a1a1a;
+  --accent: #0067c0;
+  --accent-text: #ffffff;
+  --study: #c42b1c;
+  --break: #0f7b0f;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+
+  /* Derivados de texto/superficie con color-mix: siguen el tema
+     automáticamente en claro, oscuro y cuando Zen aporta colores. */
+  --text-2: color-mix(in srgb, var(--text) 60%, transparent);
+  --border: color-mix(in srgb, var(--text) 10%, transparent);
+  --control-border: color-mix(in srgb, var(--text) 18%, transparent);
+  --control-bg: color-mix(in srgb, var(--text) 4%, var(--card));
+  --control-hover: color-mix(in srgb, var(--text) 9%, var(--card));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #202020;
+    --card: #2b2b2b;
+    --text: #ffffff;
+    --accent: #4cc2ff;
+    --accent-text: #000000;
+    --study: #ff9964;
+    --break: #6ccb5f;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  user-select: none;
+}
+
+.card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Estado + contador */
+.status {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.phase {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+.sessions {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* Tiempo grande */
+.time {
+  font-size: 42px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: 0.01em;
+  padding: 2px 0;
+}
+
+/* Filas */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+/* Steppers */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-value {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.step-btn:hover {
+  background: var(--control-hover);
+}
+
+.step-btn:active {
+  opacity: 0.7;
+}
+
+/* Botones */
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.btn:hover {
+  background: var(--control-hover);
+}
+
+.btn.primary {
+  flex: 1.6;
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-text, #ffffff);
+  font-weight: 600;
+}
+
+.btn.primary:hover {
+  background: color-mix(in srgb, var(--text) 15%, var(--accent));
+}
+
+/* Toggle switch estilo Win11 */
+.switch input {
+  display: none;
+}
+
+.track {
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.thumb {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-2);
+  transition: left 0.15s ease, background 0.15s ease;
+}
+
+.switch input:checked + .track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.switch input:checked + .track .thumb {
+  left: 22px;
+  background: var(--accent-text, #ffffff);
+}

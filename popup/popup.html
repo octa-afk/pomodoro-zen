@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="card">
+    <div class="status">
+      <span id="phase" class="phase">Estudio</span>
+      <span id="sessions" class="sessions"></span>
+    </div>
+
+    <div id="time" class="time">25:00</div>
+
+    <div class="row stepper-row">
+      <span class="label">Estudio</span>
+      <div class="stepper">
+        <button id="studyMinus" class="step-btn" title="-5 min">−</button>
+        <span id="studyVal" class="step-value">25 min</span>
+        <button id="studyPlus" class="step-btn" title="+5 min">+</button>
+      </div>
+    </div>
+
+    <div class="row stepper-row">
+      <span class="label">Descanso</span>
+      <div class="stepper">
+        <button id="breakMinus" class="step-btn" title="-1 min">−</button>
+        <span id="breakVal" class="step-value">5 min</span>
+        <button id="breakPlus" class="step-btn" title="+1 min">+</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startPause" class="btn primary">
+        <span id="startPauseIcon">▶</span>&nbsp;<span id="startPauseText">Iniciar</span>
+      </button>
+      <button id="skip" class="btn">Saltar</button>
+      <button id="reset" class="btn">Reiniciar</button>
+    </div>
+
+    <div class="row toggle-row">
+      <span class="label">Continuo (encadena fases)</span>
+      <label class="switch">
+        <input type="checkbox" id="autoStart" />
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="row toggle-row">
+      <span class="label">Usar colores del tema de Zen</span>
+      <label class="switch">
+        <input type="checkbox" id="themeColors" />
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
