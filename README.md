@@ -5,8 +5,8 @@ estilo Windows 11 (Fluent) y tema claro/oscuro automático.
 
 ## Qué hace
 
-- **Badge en la barra de herramientas** con los minutos restantes; el ícono
-  cambia de color según la fase (rojo = estudio, verde = descanso, gris = pausado).
+- **Badge en la barra de herramientas** con los minutos restantes; el ícono es el gato del estado actual (si no carga, un reloj que
+  cambia de color según la fase: rojo = estudio, verde = descanso, gris = pausado).
 - **Popup de configuración** (clic en el ícono):
   - Tiempo de estudio (±5 min) y de descanso (±1 min)
   - Iniciar / Pausar, Saltar fase, Reiniciar
@@ -19,6 +19,17 @@ estilo Windows 11 (Fluent) y tema claro/oscuro automático.
   - Contador de pomodoros completados
   - **Sonido de campana** al terminar cada fase (ding-dong sintetizado,
     se puede desactivar)
+- **Gato pixel-art** en el popup con tres estados:
+  - *Estudiando*: echado leyendo mientras corre el estudio.
+  - *Esperando*: terminó el estudio. El descanso queda listo pero **no corre**
+    hasta que toques **Comenzar descanso** (o `Alt+Shift+P`), para que cierres
+    lo que estabas haciendo. El modo Continuo solo aplica al terminar el descanso.
+  - *Descansando*: juega con un ovillo de lana rosa y cada tanto se duerme.
+- **Gato paseando por la página**: un script inyectado dibuja al gato en el
+  borde inferior de cada pestaña (no captura clics). Estudiando y esperando se
+  queda en la esquina con una animación mínima (mueve la cola y parpadea); al descansar camina empujando el ovillo y cada
+  tanto se duerme. Se puede arrastrar con el mouse (mantené el clic sobre él) para sacarlo del medio; doble clic lo devuelve a su lugar. Al terminar el estudio, el gato muestra un globo «¿Ya terminamos?» con una palomita para confirmar y comenzar el descanso. El temporizador y el menú se ocultan solos a los 15 s y su estado abierto/cerrado se comparte entre pestañas. Clic izquierdo sobre el gato muestra el temporizador (mm:ss); clic derecho abre un menú para cambiar los minutos de estudio y descanso e iniciar, pausar, reiniciar la cuenta de la fase actual o pasar a la otra fase (descanso o estudio), que arranca sola. Se desactiva desde el popup. No aparece en páginas internas
+  (`about:*`, nueva pestaña, addons.mozilla.org, visor de PDF).
 - **Notificaciones nativas** al terminar cada fase.
 - **Atajo de teclado**: `Alt+Shift+P` inicia/pausa (configurable en
   `about:addons` → engranaje → Administrar atajos de extensión).
@@ -51,10 +62,13 @@ estar habilitado, en Firefox normal hay que usar Developer Edition o desactivar
 ```
 pomodoro-zen/
 ├── manifest.json      # Manifest V2 (Firefox/Zen)
+├── content.js         # Gato que pasea por el borde de la página
 ├── background.js      # Timer persistente + lógica de fases y notificaciones
 ├── icons/
 │   └── timer.svg      # Ícono estático (temporizador)
+├── assets/            # Imágenes originales del gato (fuente)
 └── popup/
+    ├── cat/           # Sprites pixel-art (x4, fondo transparente)
     ├── popup.html     # UI del popup
     ├── popup.css      # Estilo Windows 11 (Fluent), claro/oscuro
     └── popup.js       # Polling del estado + comandos

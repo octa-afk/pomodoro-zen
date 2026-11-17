@@ -14,7 +14,7 @@ function render() {
   if (!state) return;
 
   const isStudy = state.phase === "study";
-  $("phase").textContent = isStudy ? "Estudio" : "Descanso";
+  $("phase").textContent = state.waiting ? "Esperando" : isStudy ? "Estudio" : "Descanso";
   $("phase").style.color = state.running ? (isStudy ? "var(--study)" : "var(--break)") : "var(--text-2)";
 
   $("sessions").textContent =
@@ -28,13 +28,51 @@ function render() {
   $("breakVal").textContent = state.settings.breakMinutes + " min";
 
   $("startPauseIcon").textContent = state.running ? "❚❚" : "▶";
-  $("startPauseText").textContent = state.running ? "Pausar" : "Iniciar";
+  $("startPauseText").textContent = state.running ? "Pausar" : state.waiting ? "Comenzar descanso" : "Iniciar";
 
   $("autoStart").checked = !!state.settings.autoStart;
   $("themeColors").checked = !!state.settings.themeColors;
   $("sound").checked = !!state.settings.sound;
+  $("pageCat").checked = state.settings.pageCat !== false;
 
   applyThemeStyle();
+  renderCat();
+}
+
+// ---------------------------------------------------------------- gato
+
+// Estados: esperando (fin de estudio), estudiando y descansando. Al descansar
+// alterna entre jugar con el ovillo (2 cuadros) y dormir (2 cuadros con «z»).
+const CAT_DIR = "cat/gato_";
+let restMode = "play";
+let restUntil = 0;
+
+function restSprite(now) {
+  if (now >= restUntil) {
+    restMode = restMode === "play" ? "sleep" : "play";
+    restUntil = now + (restMode === "play" ? 8000 + Math.random() * 7000 : 6000 + Math.random() * 4000);
+  }
+  // En pausa durante el descanso el gato duerme.
+  const mode = state.running ? restMode : "sleep";
+  const frame = (Math.floor(now / (mode === "play" ? 600 : 1200)) % 2) + 1;
+  return "descansando_" + (mode === "play" ? "jugando_" : "durmiendo_") + frame;
+}
+
+// Animación mínima al estudiar/esperar: la cola se mueve cada ~0,8 s y
+// parpadea un instante cada ~4 s.
+function idleSprite(base, now) {
+  if (now % 4200 < 160) return base + "_blink";
+  return base + "_" + ((Math.floor(now / 800) % 2) + 1);
+}
+
+function renderCat() {
+  let name;
+  if (state.waiting) name = idleSprite("esperando", Date.now());
+  else if (state.phase === "study") name = idleSprite("estudiando", Date.now());
+  else name = restSprite(Date.now());
+  const src = CAT_DIR + name + ".png";
+  const img = $("cat");
+  if (img.getAttribute("src") !== src) img.setAttribute("src", src);
 }
 
 // Con "Usar colores del tema de Zen" activado, sobrescribe las variables
@@ -100,6 +138,7 @@ $("breakPlus").addEventListener("click", () =>
 
 $("autoStart").addEventListener("change", () => send({ type: "toggleAuto" }));
 $("themeColors").addEventListener("change", () => send({ type: "toggleThemeColors" }));
+$("pageCat").addEventListener("change", () => send({ type: "toggleCat" }));
 $("sound").addEventListener("change", () => send({ type: "toggleSound" }));
 
 setInterval(refresh, 250);

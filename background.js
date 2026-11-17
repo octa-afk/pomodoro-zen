@@ -3,7 +3,7 @@
 // continua mientras el navegador esté abierto. El estado (fase, fin exacto,
 // ajustes) se persiste en storage.local para sobrevivir reinicios.
 
-const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true, sound: true };
+const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true, sound: true, pageCat: true };
 
 const PHASE_NAMES = { study: "Estudio", break: "Descanso" };
 
@@ -21,6 +21,9 @@ let running = false;
 let remaining = DEFAULTS.studyMinutes * 60;
 let endTime = 0;
 let completed = 0;
+// Fin de estudio: el descanso queda listo pero no corre hasta que el usuario
+// confirme que dejó las tareas (el gato «espera»).
+let waiting = false;
 
 // Colores del tema activo de Zen (leídos vía browser.theme).
 let themeColors = { available: false };
@@ -30,15 +33,17 @@ let themeColors = { available: false };
 function persist() {
   browser.storage.local.set({
     settings,
-    timer: { phase, running, remaining, endTime, completed }
+    timer: { phase, running, remaining, endTime, completed, waiting }
   });
 }
 
 async function load() {
   const data = await browser.storage.local.get(["settings", "timer"]);
+  // Los paneles del gato arrancan cerrados al iniciar el navegador.
+  browser.storage.local.remove("ui");
   settings = { ...DEFAULTS, ...(data.settings || {}) };
   const t = Object.assign(
-    { phase: "study", running: false, remaining: settings.studyMinutes * 60, endTime: 0, completed: 0 },
+    { phase: "study", running: false, remaining: settings.studyMinutes * 60, endTime: 0, completed: 0, waiting: false },
     data.timer || {}
   );
   phase = t.phase === "break" ? "break" : "study";
@@ -46,6 +51,7 @@ async function load() {
   remaining = t.remaining;
   endTime = t.endTime;
   completed = t.completed || 0;
+  waiting = !!t.waiting && phase === "break" && !running;
 
   await refreshTheme();
 
@@ -56,9 +62,11 @@ async function load() {
     if (left > 0) {
       remaining = left;
     } else {
+      const wasStudy = phase === "study";
       advancePhase(false);
-      running = settings.autoStart;
-      if (running) startTimer();
+      running = false;
+      if (wasStudy) waiting = true;
+      else if (settings.autoStart) startTimer();
     }
   } else if (phase === "study") {
     remaining = Math.min(remaining, settings.studyMinutes * 60);
@@ -104,6 +112,7 @@ function startTimer() {
 }
 
 function startPause() {
+  if (waiting) waiting = false;
   if (running) {
     remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
     running = false;
@@ -117,6 +126,7 @@ function startPause() {
 
 function resetTimer() {
   running = false;
+  waiting = false;
   phase = "study";
   remaining = settings.studyMinutes * 60;
   completed = 0;
@@ -126,6 +136,7 @@ function resetTimer() {
 
 function skipPhase() {
   running = false;
+  waiting = false;
   advancePhase(true);
   updateUI();
   persist();
@@ -146,9 +157,13 @@ function advancePhase(announce) {
 
 function completePhase() {
   running = false;
-  if (phase === "study") completed++;
+  const wasStudy = phase === "study";
+  if (wasStudy) completed++;
   advancePhase(true);
-  if (settings.autoStart) startTimer();
+  // Tras estudiar, el descanso siempre espera confirmación; tras descansar
+  // se respeta «Continuo».
+  if (wasStudy) waiting = true;
+  else if (settings.autoStart) startTimer();
   updateUI();
   persist();
 }
@@ -231,14 +246,50 @@ function iconImageData(kind, color) {
   return iconCache[key];
 }
 
+// Sprites del gato para el ícono de la barra (mismos PNG que usa el popup).
+const CAT_FILES = ["estudiando_1", "esperando_1", "descansando_jugando_1", "descansando_jugando_2", "descansando_durmiendo_1"];
+const catImgs = {};
+CAT_FILES.forEach((n) => {
+  const img = new Image();
+  img.onload = () => updateUI();
+  img.src = browser.runtime.getURL("popup/cat/gato_" + n + ".png");
+  catImgs[n] = img;
+});
+
+function catSprite() {
+  if (waiting) return "esperando_1";
+  if (phase === "study") return "estudiando_1";
+  if (!running) return "descansando_durmiendo_1";
+  return "descansando_jugando_" + ((Math.floor(Date.now() / 600) % 2) + 1);
+}
+
+// Dibuja el sprite centrado y ajustado al lado mayor en un canvas de 64 px.
+const catIconCache = {};
+function catImageData(name) {
+  const img = catImgs[name];
+  if (!img || !img.complete || !img.naturalWidth) return null;
+  if (catIconCache[name]) return catIconCache[name];
+  const S = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = S;
+  const g = canvas.getContext("2d");
+  const k = Math.min(S / img.naturalWidth, S / img.naturalHeight);
+  const w = img.naturalWidth * k, h = img.naturalHeight * k;
+  g.drawImage(img, (S - w) / 2, S - h, w, h);
+  catIconCache[name] = g.getImageData(0, 0, S, S);
+  return catIconCache[name];
+}
+
 function updateUI() {
   const title = running
     ? `Pomodoro — ${PHASE_NAMES[phase]} ${fmt(remaining)}`
-    : `Pomodoro — pausado (${fmt(remaining)})`;
+    : waiting
+      ? `Pomodoro — esperando para descansar (${fmt(remaining)})`
+      : `Pomodoro — pausado (${fmt(remaining)})`;
 
   const color = badgeColor();
   browser.browserAction.setTitle({ title });
-  browser.browserAction.setIcon({ imageData: iconImageData(iconKind(), color) });
+  browser.browserAction.setIcon({ imageData: catImageData(catSprite()) || iconImageData(iconKind(), color) });
 
   // Badge: minutos restantes; bajo 1 min muestra segundos ("0:59").
   const badge = remaining >= 60
@@ -271,7 +322,7 @@ const chime = new Audio(browser.runtime.getURL("sounds/chime.wav"));
 // ---------------------------------------------------------------- mensajes
 
 function snapshot() {
-  return { settings, phase, running, remaining, endTime, completed, themeColors };
+  return { settings, phase, running, remaining, endTime, completed, waiting, themeColors };
 }
 
 browser.runtime.onMessage.addListener((msg) => {
@@ -283,6 +334,19 @@ browser.runtime.onMessage.addListener((msg) => {
       return snapshot();
     case "reset":
       resetTimer();
+      return snapshot();
+    case "resetPhase":
+      // Solo reinicia la cuenta de la fase actual (sin cambiar de fase ni
+      // tocar el contador de pomodoros). Queda detenido.
+      running = false;
+      remaining = (phase === "study" ? settings.studyMinutes : settings.breakMinutes) * 60;
+      updateUI();
+      persist();
+      return snapshot();
+    case "skipStart":
+      // «Ir a descanso/estudio» desde el menú del gato: cambia de fase y arranca.
+      skipPhase();
+      startTimer();
       return snapshot();
     case "skip":
       skipPhase();
@@ -308,6 +372,10 @@ browser.runtime.onMessage.addListener((msg) => {
     case "toggleThemeColors":
       settings.themeColors = !settings.themeColors;
       updateUI();
+      persist();
+      return snapshot();
+    case "toggleCat":
+      settings.pageCat = !settings.pageCat;
       persist();
       return snapshot();
     case "toggleSound":
