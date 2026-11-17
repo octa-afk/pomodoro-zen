@@ -17,6 +17,8 @@ estilo Windows 11 (Fluent) y tema claro/oscuro automático.
     distingue con un ícono de reloj hueco. Si se desactiva, se usan los
     colores Fluent fijos (rojo estudio / verde descanso).
   - Contador de pomodoros completados
+  - **Sonido de campana** al terminar cada fase (ding-dong sintetizado,
+    se puede desactivar)
 - **Notificaciones nativas** al terminar cada fase.
 - **Atajo de teclado**: `Alt+Shift+P` inicia/pausa (configurable en
   `about:addons` → engranaje → Administrar atajos de extensión).

@@ -32,6 +32,7 @@ function render() {
 
   $("autoStart").checked = !!state.settings.autoStart;
   $("themeColors").checked = !!state.settings.themeColors;
+  $("sound").checked = !!state.settings.sound;
 
   applyThemeStyle();
 }
@@ -99,6 +100,7 @@ $("breakPlus").addEventListener("click", () =>
 
 $("autoStart").addEventListener("change", () => send({ type: "toggleAuto" }));
 $("themeColors").addEventListener("change", () => send({ type: "toggleThemeColors" }));
+$("sound").addEventListener("change", () => send({ type: "toggleSound" }));
 
 setInterval(refresh, 250);
 refresh();

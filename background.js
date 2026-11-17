@@ -3,7 +3,7 @@
 // continua mientras el navegador esté abierto. El estado (fase, fin exacto,
 // ajustes) se persiste en storage.local para sobrevivir reinicios.
 
-const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true };
+const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true, sound: true };
 
 const PHASE_NAMES = { study: "Estudio", break: "Descanso" };
 
@@ -255,7 +255,18 @@ function notify(title, message) {
     title,
     message
   });
+  if (settings.sound) {
+    try {
+      chime.currentTime = 0;
+      chime.play().catch(() => {});
+    } catch (e) {
+      // Sin sonido disponible (p. ej. al reanudar); la notificación queda.
+    }
+  }
 }
+
+// Campana de fin de fase (ding-dong sintetizado, 1.5 s).
+const chime = new Audio(browser.runtime.getURL("sounds/chime.wav"));
 
 // ---------------------------------------------------------------- mensajes
 
@@ -297,6 +308,10 @@ browser.runtime.onMessage.addListener((msg) => {
     case "toggleThemeColors":
       settings.themeColors = !settings.themeColors;
       updateUI();
+      persist();
+      return snapshot();
+    case "toggleSound":
+      settings.sound = !settings.sound;
       persist();
       return snapshot();
   }
