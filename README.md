@@ -1,7 +1,6 @@
 # Pomodoro para Firefox
 
-Extensión Pomodoro con tiempos configurables de estudio y descanso, con UI
-estilo Windows 11 (Fluent) y tema claro/oscuro automático.
+Extensión Pomodoro con tiempos configurables de estudio y descanso con tema claro/oscuro automático.
 
 ## Qué hace
 
