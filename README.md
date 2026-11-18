@@ -1,72 +1,50 @@
 # Pomodoro para Firefox ₍^. .^₎⟆
-Extensión Pomodoro con tiempos configurables de estudio y descanso con tema claro/oscuro automático.
 
-## Qué hace
+<p align="center">
+  <img src="popup/cat/gato_estudiando_1.png" alt="Gato estudiando" height="90">
+  <img src="popup/cat/gato_esperando_1.png" alt="Gato esperando" height="90">
+  <img src="popup/cat/gato_jugando_1.png" alt="Gato jugando" height="90">
+</p>
 
-- **Badge en la barra de herramientas** con los minutos restantes; el ícono es el gato del estado actual (si no carga, un reloj que
-  cambia de color según la fase: rojo = estudio, verde = descanso, gris = pausado).
-- **Popup de configuración** (clic en el ícono):
-  - Tiempo de estudio (1, 5, 10 … 60, 75, 90 min) y de descanso (1–5, 10, 15 … 30 min), con escalas fijas
-  - Iniciar / Pausar, Saltar fase, Reiniciar
-  - **Usar colores del tema de Zen**: cuando está activado, el popup y el
-    ícono toman los colores (fondo, texto, acento) del tema activo de
-    Zen/Firefox y se actualizan solos si cambiás de tema. El descanso se
-    distingue con un ícono de reloj hueco. Si se desactiva, se usan los
-    colores Fluent fijos (rojo estudio / verde descanso).
-  - Contador de pomodoros completados
-  - **Sonido** al terminar cada fase: despertador de 8 bits y un maullidito
-    (se puede desactivar). La notificación usa una huella de gato pixel-art.
-- **Gato pixel-art** en el popup con tres estados:
-  - *Estudiando*: echado leyendo con anteojos; mueve la cola mientras lee.
-  - *Esperando*: terminó una fase. La siguiente queda lista pero **no corre**
-    hasta que confirmes (**Comenzar descanso** / **Comenzar estudio**, o
-    `Alt+Shift+P`), para que cierres lo que estabas haciendo.
-  - *Descansando*: juega con un ovillo de lana (el ovillo rueda, el hilo ondula, mueve la cola y parpadea).
-- **Gato paseando por la página**: un script inyectado dibuja al gato en el
-  borde inferior de cada pestaña (no captura clics). Estudiando y esperando se
-  queda en la esquina con una animación mínima (mueve la cola y parpadea); al descansar juega con el ovillo, lo tira lejos,
-  lo mira en acecho, corre tras él, se estira para atraparlo y lo trae de vuelta. Se puede arrastrar con el mouse (mantené el clic sobre él) para sacarlo del medio; doble clic lo devuelve a su lugar. Al terminar cada fase, el gato muestra un globo con una palomita para confirmar («¿Ya terminamos?» tras el estudio, «¿Ya estamos listos?» tras el descanso); el globo cierra el menú y el temporizador para quedar al frente. El temporizador y el menú se ocultan solos a los 15 s y su estado abierto/cerrado se comparte entre pestañas. Clic izquierdo sobre el gato muestra el temporizador (mm:ss); clic derecho abre un menú para cambiar los minutos de estudio y descanso e iniciar, pausar, reiniciar la cuenta de la fase actual o pasar a la otra fase (descanso o estudio), que arranca sola. Se desactiva desde el popup. No aparece en páginas internas
-  (`about:*`, nueva pestaña, addons.mozilla.org, visor de PDF).
-- **Notificaciones nativas** al terminar cada fase.
-- **Atajo de teclado**: `Alt+Shift+P` inicia/pausa (configurable en
-  `about:addons` → engranaje → Administrar atajos de extensión).
-- Los ajustes y el estado del timer se guardan: si reiniciás el navegador,
-  el temporizador retoma donde estaba.
+Un temporizador Pomodoro para **Zen** y **Firefox**, con un gatito pixel-art
+que te acompaña mientras estudiás. 🐾
 
-## Instalación en Zen
+## Cómo funciona
 
-### Opción temporal (para probar)
+El gato vive en la parte de abajo de tus pestañas y cambia según el momento:
 
-1. Abrí `about:debugging#/runtime/this-firefox`
-2. Clic en **Cargar complemento temporal…**
-3. Elegí el archivo `manifest.json` de esta carpeta
+- 📖 **Estudiando**: lee tranquilo mientras corre el tiempo de estudio.
+- ⏳ **Esperando**: se terminó el tiempo. Suena un despertador de 8 bits y un
+  maullidito, y el gato te pregunta *«¿Ya terminamos?»*. Tocá la palomita ✓
+  cuando estés listo y empieza la siguiente fase.
+- 🧶 **Descansando**: juega con su ovillo, lo tira y sale corriendo a buscarlo.
 
-Nota: con esta opción la extensión se descarga al cerrar el navegador.
+## Usar el gato
 
-### Opción permanente
+| Acción | Qué pasa |
+| --- | --- |
+| Clic izquierdo | Muestra cuánto tiempo queda |
+| Clic derecho | Abre el menú: minutos, iniciar/pausar, reiniciar, saltar |
+| Arrastrar | Lo movés si te tapa algo |
+| Doble clic | Vuelve a su lugar |
 
-Zen permite cargar extensiones sin firmar de forma permanente desde la
-consola de depuración (`about:debugging`) solo mientras dure la sesión. Para
-instalarla en firme, empaquetá la carpeta como zip (incluido en este repo
-como `pomodoro-zen.zip`), renombralo a `.xpi` si tu versión de Zen lo pide, e
-instalalo desde `about:addons` → engranaje → **Instalar complemento desde
-archivo…** (requiere que Zen permita complementos sin firmar; en Zen suele
-estar habilitado, en Firefox normal hay que usar Developer Edition o desactivar
-`xpinstall.signatures.required`).
+También podés controlar todo desde el ícono de la extensión en la barra, o
+con el atajo `Alt+Shift+P` para iniciar y pausar.
 
-## Estructura
+## Instalar
 
-```
-pomodoro-zen/
-├── manifest.json      # Manifest V2 (Firefox/Zen)
-├── content.js         # Gato que pasea por el borde de la página
-├── background.js      # Timer persistente + lógica de fases y notificaciones
-├── icons/
-│   └── timer.svg      # Ícono estático (temporizador)
-├── assets/            # Imágenes originales del gato (fuente)
-└── popup/
-    ├── cat/           # Sprites pixel-art (x4, fondo transparente)
-    ├── popup.html     # UI del popup
-    ├── popup.css      # Estilo Windows 11 (Fluent), claro/oscuro
-    └── popup.js       # Polling del estado + comandos
-```
+**Rápido (para probar):**
+
+1. Descargá [`pomodoro-zen.zip`](https://github.com/octa-afk/pomodoro-zen/releases/latest/download/pomodoro-zen.zip).
+2. En Zen o Firefox, abrí `about:debugging#/runtime/this-firefox`.
+3. Tocá **«Cargar complemento temporal…»** y elegí el `.zip`.
+
+Se borra al cerrar el navegador. Pronto va a estar disponible en la tienda de
+complementos de Firefox para instalarlo de forma permanente.
+
+## Para desarrolladores
+
+Es una extensión Manifest V2 sin dependencias: `background.js` lleva el
+temporizador, `content.js` dibuja al gato en las páginas y `popup/` es la
+ventanita del ícono. Para probar cambios, cargá `manifest.json` desde
+`about:debugging`.
