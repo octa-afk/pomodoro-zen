@@ -28,9 +28,8 @@ function render() {
   $("breakVal").textContent = state.settings.breakMinutes + " min";
 
   $("startPauseIcon").textContent = state.running ? "❚❚" : "▶";
-  $("startPauseText").textContent = state.running ? "Pausar" : state.waiting ? "Comenzar descanso" : "Iniciar";
+  $("startPauseText").textContent = state.running ? "Pausar" : state.waiting ? (isStudy ? "Comenzar estudio" : "Comenzar descanso") : "Iniciar";
 
-  $("autoStart").checked = !!state.settings.autoStart;
   $("themeColors").checked = !!state.settings.themeColors;
   $("sound").checked = !!state.settings.sound;
   $("pageCat").checked = state.settings.pageCat !== false;
@@ -136,7 +135,6 @@ $("breakMinus").addEventListener("click", () =>
 $("breakPlus").addEventListener("click", () =>
   send({ type: "stepBreak", dir: 1 }));
 
-$("autoStart").addEventListener("change", () => send({ type: "toggleAuto" }));
 $("themeColors").addEventListener("change", () => send({ type: "toggleThemeColors" }));
 $("pageCat").addEventListener("change", () => send({ type: "toggleCat" }));
 $("sound").addEventListener("change", () => send({ type: "toggleSound" }));

@@ -3,7 +3,7 @@
 // continua mientras el navegador esté abierto. El estado (fase, fin exacto,
 // ajustes) se persiste en storage.local para sobrevivir reinicios.
 
-const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true, sound: true, pageCat: true };
+const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, themeColors: true, sound: true, pageCat: true };
 
 // Escalas fijas de minutos: los botones − / + saltan al valor anterior o
 // siguiente de la lista (si el valor actual no está en la lista, al más cercano
@@ -64,7 +64,7 @@ async function load() {
   remaining = t.remaining;
   endTime = t.endTime;
   completed = t.completed || 0;
-  waiting = !!t.waiting && phase === "break" && !running;
+  waiting = !!t.waiting && !running;
 
   await refreshTheme();
 
@@ -75,11 +75,9 @@ async function load() {
     if (left > 0) {
       remaining = left;
     } else {
-      const wasStudy = phase === "study";
       advancePhase(false);
       running = false;
-      if (wasStudy) waiting = true;
-      else if (settings.autoStart) startTimer();
+      waiting = true;
     }
   } else if (phase === "study") {
     remaining = Math.min(remaining, settings.studyMinutes * 60);
@@ -173,10 +171,11 @@ function completePhase() {
   const wasStudy = phase === "study";
   if (wasStudy) completed++;
   advancePhase(true);
-  // Tras estudiar, el descanso siempre espera confirmación; tras descansar
-  // se respeta «Continuo».
-  if (wasStudy) waiting = true;
-  else if (settings.autoStart) startTimer();
+  // Al terminar cualquier fase, la siguiente espera confirmación («¿Ya
+  // terminamos?» / «¿Ya estamos listos?»). Se cierran el menú y el reloj del
+  // gato en todas las pestañas para que el globo quede al frente.
+  waiting = true;
+  browser.storage.local.set({ ui: { menu: false, bubble: false, at: Date.now() } });
   updateUI();
   persist();
 }
@@ -296,7 +295,7 @@ function updateUI() {
   const title = running
     ? `Pomodoro — ${PHASE_NAMES[phase]} ${fmt(remaining)}`
     : waiting
-      ? `Pomodoro — esperando para descansar (${fmt(remaining)})`
+      ? `Pomodoro — esperando para ${phase === "break" ? "descansar" : "estudiar"} (${fmt(remaining)})`
       : `Pomodoro — pausado (${fmt(remaining)})`;
 
   const color = badgeColor();
@@ -314,22 +313,22 @@ function updateUI() {
 function notify(title, message) {
   browser.notifications.create({
     type: "basic",
-    iconUrl: browser.runtime.getURL("icons/timer.svg"),
+    iconUrl: browser.runtime.getURL("icons/huella.png"),
     title,
     message
   });
   if (settings.sound) {
     try {
-      chime.currentTime = 0;
-      chime.play().catch(() => {});
+      alarm.currentTime = 0;
+      alarm.play().catch(() => {});
     } catch (e) {
       // Sin sonido disponible (p. ej. al reanudar); la notificación queda.
     }
   }
 }
 
-// Campana de fin de fase (ding-dong sintetizado, 1.5 s).
-const chime = new Audio(browser.runtime.getURL("sounds/chime.wav"));
+// Aviso de fin de fase: despertador de 8 bits y un maullidito (2.6 s).
+const alarm = new Audio(browser.runtime.getURL("sounds/alarma.wav"));
 
 // ---------------------------------------------------------------- mensajes
 
@@ -389,10 +388,6 @@ browser.runtime.onMessage.addListener((msg) => {
       persist();
       return snapshot();
     }
-    case "toggleAuto":
-      settings.autoStart = !settings.autoStart;
-      persist();
-      return snapshot();
     case "toggleThemeColors":
       settings.themeColors = !settings.themeColors;
       updateUI();

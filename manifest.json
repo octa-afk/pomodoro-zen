@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Pomodoro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Temporizador Pomodoro con tiempos configurables de estudio y descanso, estilo Windows 11.",
   "author": "octa",
   "browser_specific_settings": {

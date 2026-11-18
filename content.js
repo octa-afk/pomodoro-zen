@@ -124,14 +124,23 @@
   // Globo «¿Ya terminamos?»: aparece solo mientras el gato espera.
   const ask = document.createElement("div");
   ask.className = "menu ask";
-  ask.innerHTML = `<div class="q">¿Ya terminamos?</div>
-    <button class="ok" id="ok" title="Comenzar descanso" aria-label="Comenzar descanso"><span class="tick"></span></button>`;
+  ask.innerHTML = `<div class="q" id="askQ">¿Ya terminamos?</div>
+    <button class="ok" id="ok"><span class="tick"></span></button>`;
   root.appendChild(ask);
   ask.addEventListener("pointerdown", (e) => e.stopPropagation());
   ask.querySelector("#ok").addEventListener("click", () => {
     timer = Object.assign({}, timer, { waiting: false });   // se oculta ya, sin esperar al storage
     browser.runtime.sendMessage({ type: "startPause" });
   });
+
+  // En espera, la fase ya cambió: «break» = terminó el estudio, «study» = terminó el descanso.
+  function startLabel() { return timer.phase === "break" ? "Comenzar descanso" : "Comenzar estudio"; }
+  function renderAsk() {
+    ask.querySelector("#askQ").textContent = timer.phase === "break" ? "¿Ya terminamos?" : "¿Ya estamos listos?";
+    const ok = ask.querySelector("#ok");
+    ok.title = startLabel();
+    ok.setAttribute("aria-label", startLabel());
+  }
 
   function remainingSec() {
     if (timer.running) return Math.max(0, Math.ceil((timer.endTime - Date.now()) / 1000));
@@ -153,7 +162,7 @@
   function renderMenu() {
     $m("studyVal").textContent = mins.study + " min";
     $m("breakVal").textContent = mins.break + " min";
-    $m("go").textContent = timer.running ? "Pausar" : timer.waiting ? "Comenzar descanso" : "Iniciar";
+    $m("go").textContent = timer.running ? "Pausar" : timer.waiting ? startLabel() : "Iniciar";
     // «Pasar a descanso» (o a estudio si ya estás descansando). En espera el
     // botón principal ya inicia el descanso, así que se oculta.
     const skip = $m("skip");
@@ -435,7 +444,12 @@
   }
 
   function read(data) {
-    if (data.timer) timer = data.timer;
+    if (data.timer) {
+      // Al entrar en espera el globo pasa al frente: se cierran menú y reloj.
+      if (data.timer.waiting && !timer.waiting) setUI(false, false, false);
+      timer = data.timer;
+      renderAsk();
+    }
     if (data.settings) {
       enabled = data.settings.pageCat !== false;
       mins = { study: data.settings.studyMinutes || 25, break: data.settings.breakMinutes || 5 };
