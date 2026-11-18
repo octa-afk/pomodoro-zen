@@ -1,5 +1,4 @@
-# Pomodoro para Firefox
-
+# Pomodoro para Firefox ₍^. .^₎⟆
 Extensión Pomodoro con tiempos configurables de estudio y descanso con tema claro/oscuro automático.
 
 ## Qué hace
