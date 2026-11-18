@@ -5,6 +5,19 @@
 
 const DEFAULTS = { studyMinutes: 25, breakMinutes: 5, autoStart: true, themeColors: true, sound: true, pageCat: true };
 
+// Escalas fijas de minutos: los botones − / + saltan al valor anterior o
+// siguiente de la lista (si el valor actual no está en la lista, al más cercano
+// en esa dirección).
+const SCALES = {
+  study: [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 75, 90],
+  break: [1, 2, 3, 4, 5, 10, 15, 20, 25, 30]
+};
+
+function stepScale(scale, value, dir) {
+  if (dir > 0) return scale.find((v) => v > value) ?? scale[scale.length - 1];
+  return [...scale].reverse().find((v) => v < value) ?? scale[0];
+}
+
 const PHASE_NAMES = { study: "Estudio", break: "Descanso" };
 
 // Colores fijos (cuando NO se usan los del tema de Zen).
@@ -247,7 +260,7 @@ function iconImageData(kind, color) {
 }
 
 // Sprites del gato para el ícono de la barra (mismos PNG que usa el popup).
-const CAT_FILES = ["estudiando_1", "esperando_1", "descansando_jugando_1", "descansando_jugando_2", "descansando_durmiendo_1"];
+const CAT_FILES = ["estudiando_1", "esperando_1", "jugando_1", "jugando_2", "jugando_3", "jugando_4"];
 const catImgs = {};
 CAT_FILES.forEach((n) => {
   const img = new Image();
@@ -259,8 +272,7 @@ CAT_FILES.forEach((n) => {
 function catSprite() {
   if (waiting) return "esperando_1";
   if (phase === "study") return "estudiando_1";
-  if (!running) return "descansando_durmiendo_1";
-  return "descansando_jugando_" + ((Math.floor(Date.now() / 600) % 2) + 1);
+  return "jugando_" + (running ? (Math.floor(Date.now() / 260) % 4) + 1 : 1);
 }
 
 // Dibuja el sprite centrado y ajustado al lado mayor en un canvas de 64 px.
@@ -350,6 +362,18 @@ browser.runtime.onMessage.addListener((msg) => {
       return snapshot();
     case "skip":
       skipPhase();
+      return snapshot();
+    case "stepStudy":
+      settings.studyMinutes = stepScale(SCALES.study, settings.studyMinutes, msg.dir);
+      if (!running && phase === "study") remaining = settings.studyMinutes * 60;
+      updateUI();
+      persist();
+      return snapshot();
+    case "stepBreak":
+      settings.breakMinutes = stepScale(SCALES.break, settings.breakMinutes, msg.dir);
+      if (!running && phase === "break") remaining = settings.breakMinutes * 60;
+      updateUI();
+      persist();
       return snapshot();
     case "setStudy": {
       settings.studyMinutes = Math.max(1, parseInt(msg.value, 10) || 25);

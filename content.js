@@ -8,7 +8,15 @@
   if (window.top !== window || document.getElementById("pomodoro-zen-cat")) return;
 
   const SCALE = 0.5;            // los PNG vienen a x4; se muestran a x2
-  const SPEED = 45;             // px/s al caminar
+  const HOP_MS = 380;           // duración de cada saltito
+  const HOP_DIST = 34;          // px que avanza por saltito
+  const HOP_HEIGHT = 16;        // altura del salto
+  const BALL = 18;              // ancho del ovillo suelto (px)
+  const BALL_H = 16;            // alto del ovillo suelto (px)
+  const BALL_SLOT = { 1: 48, "-1": 8 };   // dónde está el ovillo en el sprite (px desde la izquierda)
+  const BALL_LIFT = 4;          // alto del ovillo sobre la base del sprite (px)
+  const RUN_SPEED = 170;        // px/s al correr tras el ovillo
+  const GRAVITY = 1400;         // px/s²
   const BASE = browser.runtime.getURL("popup/cat/gato_");
 
   const host = document.createElement("div");
@@ -26,6 +34,15 @@
   img.alt = "";
   img.draggable = false;
   root.appendChild(img);
+
+  // Ovillo suelto: aparece cuando el gato lo tira y lo persigue.
+  const ball = document.createElement("img");
+  ball.style.cssText =
+    "position:absolute;left:0;bottom:0;display:none;image-rendering:pixelated;" +
+    `pointer-events:none;width:${BALL}px;height:${BALL_H}px;will-change:transform;`;
+  ball.alt = "";
+  ball.src = BASE.replace("gato_", "ovillo_") + "1.png";
+  root.appendChild(ball);
 
   // Menú de configuración (se abre al hacer clic en el gato).
   const style = document.createElement("style");
@@ -83,9 +100,9 @@
   menu.className = "menu";
   menu.innerHTML = `
     <div class="row"><span class="label">Estudio</span>
-      <span class="stepper"><button class="step" data-k="study" data-d="-5">−</button>
+      <span class="stepper"><button class="step" data-k="study" data-d="-1">−</button>
         <span class="val" id="studyVal"></span>
-        <button class="step" data-k="study" data-d="5">+</button></span></div>
+        <button class="step" data-k="study" data-d="1">+</button></span></div>
     <div class="row"><span class="label">Descanso</span>
       <span class="stepper"><button class="step" data-k="break" data-d="-1">−</button>
         <span class="val" id="breakVal"></span>
@@ -153,10 +170,10 @@
     if (b.id === "skip") { browser.runtime.sendMessage({ type: "skipStart" }); return; }
     touch();
     const k = b.dataset.k;
-    const v = Math.max(1, mins[k] + parseInt(b.dataset.d, 10));
-    mins[k] = v;
-    renderMenu();
-    browser.runtime.sendMessage({ type: k === "study" ? "setStudy" : "setBreak", value: v });
+    // El background aplica la escala fija y devuelve el valor nuevo.
+    browser.runtime.sendMessage({ type: k === "study" ? "stepStudy" : "stepBreak", dir: parseInt(b.dataset.d, 10) })
+      .then((st) => { if (st && st.settings) { mins = { study: st.settings.studyMinutes, break: st.settings.breakMinutes }; renderMenu(); } })
+      .catch(() => {});
   });
   // El menú no debe iniciar un arrastre ni dejar pasar clics a la página.
   menu.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -206,8 +223,15 @@
   // Posición: x desde la izquierda, y = distancia al borde inferior.
   let x = 16, y = 0, dir = 1;
   let placed = false;           // el usuario lo movió: no volver a la esquina
-  let mode = "walk";            // walk | sleep (solo en descanso)
-  let modeUntil = 0;
+  // Descanso: juega con el ovillo, lo tira lejos, lo persigue y lo trae de vuelta.
+  //   play   → ovillo entre las patas (4 cuadros de juego)
+  //   throw  → pata arriba: acaba de lanzarlo
+  //   watch  → lo mira volar, en acecho
+  //   chase  → corre (camina/salto) y al acercarse se estira hacia él
+  //   caught → lo atrapó: un instante parado antes de volver a jugar
+  let rest = { state: "play", until: 0, next: 0 };
+  let hopY = 0;
+  let b = { x: 0, y: 0, vx: 0, vy: 0, floor: 0, run: 0 };   // ovillo suelto
   let last = 0;
 
   // Arrastre
@@ -276,11 +300,32 @@
     return base + "_" + ((Math.floor(now / 800) % 2) + 1);
   }
 
+  // Jugando con el ovillo: 4 cuadros (el ovillo rueda, el hilo ondula, la cola
+  // se mueve) y un parpadeo cada ~5 s. En el aire usa el cuadro de la cola alzada.
+  function playSprite(now) {
+    if (now % 5000 < 160) return "jugando_blink";
+    return "jugando_" + ((Math.floor(now / 260) % 4) + 1);
+  }
+
+  // Poses de la hoja assets/gato_descansando.jpg.
+  function chaseSprite(now) {
+    if (rest.state === "throw") return "sin_2";
+    if (rest.state === "watch") return "acecho";
+    if (rest.state === "caught") return "parado";
+    if (rest.near) return "estira";
+    return Math.floor(now / 140) % 2 ? "salto" : "camina";
+  }
+
+  // Estudiando: 3 cuadros de assets/gato_estudiando_nuevo.jpg, ida y vuelta.
+  const STUDY_SEQ = [1, 3, 2, 3];
+  function studySprite(now) {
+    return "estudiando_" + STUDY_SEQ[Math.floor(now / 700) % STUDY_SEQ.length];
+  }
+
   function pickSprite(now) {
     if (timer.waiting) return idleSprite("esperando", Date.now());
-    if (timer.phase === "study") return idleSprite("estudiando", Date.now());
-    if (!timer.running || mode === "sleep") return "descansando_durmiendo_" + ((Math.floor(now / 1200) % 2) + 1);
-    return "descansando_jugando_" + ((Math.floor(now / 350) % 2) + 1);
+    if (timer.phase === "study") return studySprite(Date.now());
+    return rest.state === "play" ? playSprite(Date.now()) : chaseSprite(Date.now());
   }
 
   function frame(now) {
@@ -290,17 +335,61 @@
     last = now;
 
     const resting = timer.phase === "break" && !timer.waiting && timer.running;
-    if (resting && now >= modeUntil) {
-      mode = mode === "walk" ? "sleep" : "walk";
-      modeUntil = now + (mode === "walk" ? 12000 + Math.random() * 10000 : 7000 + Math.random() * 5000);
-    }
+    hopY = 0;
 
     if (!drag) {
-      if (resting && mode === "walk" && !menuOpen && !bubbleOpen) {
-        // Camina desde donde esté (también si lo dejaste más arriba).
-        x += dir * SPEED * dt;
-        if (x >= maxX()) { x = maxX(); dir = -1; }
-        if (x <= 8) { x = 8; dir = 1; }
+      if (resting && !menuOpen && !bubbleOpen) {
+        const t = Date.now();
+        const slot = () => x + BALL_SLOT[dir];                 // borde izquierdo del ovillo en el sprite
+        if (rest.state === "play") {
+          if (!rest.until) rest.until = t + 3000 + Math.random() * 3000;
+          if (t >= rest.until) {
+            // Tira el ovillo hacia donde haya más lugar.
+            const roomR = window.innerWidth - x, roomL = x;
+            if ((dir === 1 && roomR < 220 && roomL > roomR) || (dir === -1 && roomL < 220 && roomR > roomL)) dir = -dir;
+            b = { x: slot(), y: y + BALL_LIFT, floor: y + BALL_LIFT, run: 0,
+                  vx: dir * (260 + Math.random() * 160), vy: 420 + Math.random() * 120 };
+            rest.state = "throw";
+            rest.next = t + 250;
+          }
+        } else {
+          if (rest.state === "throw" && t >= rest.next) { rest.state = "watch"; rest.next = t + 450; }
+          else if (rest.state === "watch" && t >= rest.next) rest.state = "chase";
+          else if (rest.state === "caught" && t >= rest.next) {
+            // Vuelve a la pose de juego con el ovillo entre las patas.
+            x = clamp(b.x - BALL_SLOT[dir], 0, maxX());
+            rest.state = "play";
+            rest.until = t + 3500 + Math.random() * 3500;
+          }
+          if (rest.state === "chase") {
+            // Corre hacia el ovillo, mirando hacia él.
+            const target = b.x + BALL / 2;
+            const center = x + width() / 2;
+            if (Math.abs(target - center) > 6) dir = target >= center ? 1 : -1;
+            x = clamp(x + dir * RUN_SPEED * dt, 0, maxX());
+            const nose = dir === 1 ? x + width() - 4 : x + 4;
+            const gap = Math.abs(target - nose);
+            rest.near = gap < 50;
+            // Alcanzado con la nariz y casi quieto: lo atrapa.
+            if (gap < 12 && Math.abs(b.vx) < 80 && b.y - b.floor < 8) {
+              rest.state = "caught"; rest.near = false; rest.next = t + 450;
+              b.vx = 0; b.vy = 0; b.y = b.floor;
+            }
+          }
+          // Física del ovillo suelto: parábola, rebotes, rozamiento y paredes.
+          b.vy -= GRAVITY * dt;
+          b.y += b.vy * dt;
+          if (b.y <= b.floor) {
+            b.y = b.floor;
+            b.vy = Math.abs(b.vy) > 140 ? -b.vy * 0.45 : 0;
+            if (b.vy === 0) { b.vx *= Math.max(0, 1 - 2.2 * dt); if (Math.abs(b.vx) < 6) b.vx = 0; }
+          }
+          const nx = b.x + b.vx * dt;
+          const lim = window.innerWidth - 40;   // alcanzable por el gato en el borde derecho
+          if (nx < 0 || nx > lim) { b.vx = -b.vx * 0.6; b.x = clamp(nx, 0, lim); }
+          else b.x = nx;
+          b.run += Math.abs(b.vx * dt);
+        }
       } else if (!resting && !placed) {
         // Estudiando / esperando / pausado: quieto en la esquina derecha.
         x = maxX(); dir = 1;
@@ -310,9 +399,17 @@
       y = clamp(y, 0, maxY());
     }
 
+    if (!resting) { rest.state = "play"; rest.until = 0; rest.near = false; }
+    const ballOut = resting && rest.state !== "play";
     setSprite(pickSprite(now));
+    if (ballOut) {
+      ball.style.display = "block";
+      ball.style.transform = `translate(${Math.round(b.x)}px, ${-Math.round(b.y)}px)`;
+      const ballSrc = BASE.replace("gato_", "ovillo_") + ((Math.floor(b.run / 8) % 2) + 1) + ".png";
+      if (ball.getAttribute("src") !== ballSrc) ball.setAttribute("src", ballSrc);
+    } else if (ball.style.display !== "none") ball.style.display = "none";
     if (img.naturalWidth) img.style.width = width() + "px";
-    img.style.transform = `translate(${Math.round(x)}px, ${-Math.round(y)}px) scaleX(${dir})`;
+    img.style.transform = `translate(${Math.round(x)}px, ${-Math.round(y + hopY)}px) scaleX(${dir})`;
     img.style.transformOrigin = "center bottom";
 
     // Encima del gato si hay lugar; si no, debajo. Centrado y dentro de la ventana.

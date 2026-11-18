@@ -42,20 +42,13 @@ function render() {
 // ---------------------------------------------------------------- gato
 
 // Estados: esperando (fin de estudio), estudiando y descansando. Al descansar
-// alterna entre jugar con el ovillo (2 cuadros) y dormir (2 cuadros con «z»).
+// juega con el ovillo (4 cuadros: el ovillo rueda, el hilo ondula, mueve la
+// cola) y parpadea cada ~5 s.
 const CAT_DIR = "cat/gato_";
-let restMode = "play";
-let restUntil = 0;
 
 function restSprite(now) {
-  if (now >= restUntil) {
-    restMode = restMode === "play" ? "sleep" : "play";
-    restUntil = now + (restMode === "play" ? 8000 + Math.random() * 7000 : 6000 + Math.random() * 4000);
-  }
-  // En pausa durante el descanso el gato duerme.
-  const mode = state.running ? restMode : "sleep";
-  const frame = (Math.floor(now / (mode === "play" ? 600 : 1200)) % 2) + 1;
-  return "descansando_" + (mode === "play" ? "jugando_" : "durmiendo_") + frame;
+  if (now % 5000 < 160) return "jugando_blink";
+  return "jugando_" + ((Math.floor(now / 260) % 4) + 1);
 }
 
 // Animación mínima al estudiar/esperar: la cola se mueve cada ~0,8 s y
@@ -65,10 +58,17 @@ function idleSprite(base, now) {
   return base + "_" + ((Math.floor(now / 800) % 2) + 1);
 }
 
+// Estudiando: 3 cuadros de assets/gato_estudiando_nuevo.jpg (cola y cabeza
+// se mueven mientras lee). Ida y vuelta para que el movimiento sea suave.
+const STUDY_SEQ = [1, 3, 2, 3];
+function studySprite(now) {
+  return "estudiando_" + STUDY_SEQ[Math.floor(now / 700) % STUDY_SEQ.length];
+}
+
 function renderCat() {
   let name;
   if (state.waiting) name = idleSprite("esperando", Date.now());
-  else if (state.phase === "study") name = idleSprite("estudiando", Date.now());
+  else if (state.phase === "study") name = studySprite(Date.now());
   else name = restSprite(Date.now());
   const src = CAT_DIR + name + ".png";
   const img = $("cat");
@@ -127,14 +127,14 @@ $("skip").addEventListener("click", () => send({ type: "skip" }));
 $("reset").addEventListener("click", () => send({ type: "reset" }));
 
 $("studyMinus").addEventListener("click", () =>
-  send({ type: "setStudy", value: state.settings.studyMinutes - 5 }));
+  send({ type: "stepStudy", dir: -1 }));
 $("studyPlus").addEventListener("click", () =>
-  send({ type: "setStudy", value: state.settings.studyMinutes + 5 }));
+  send({ type: "stepStudy", dir: 1 }));
 
 $("breakMinus").addEventListener("click", () =>
-  send({ type: "setBreak", value: state.settings.breakMinutes - 1 }));
+  send({ type: "stepBreak", dir: -1 }));
 $("breakPlus").addEventListener("click", () =>
-  send({ type: "setBreak", value: state.settings.breakMinutes + 1 }));
+  send({ type: "stepBreak", dir: 1 }));
 
 $("autoStart").addEventListener("change", () => send({ type: "toggleAuto" }));
 $("themeColors").addEventListener("change", () => send({ type: "toggleThemeColors" }));
@@ -142,4 +142,5 @@ $("pageCat").addEventListener("change", () => send({ type: "toggleCat" }));
 $("sound").addEventListener("change", () => send({ type: "toggleSound" }));
 
 setInterval(refresh, 250);
+setInterval(() => { if (state) renderCat(); }, 100);
 refresh();

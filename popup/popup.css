@@ -81,7 +81,7 @@ body {
 /* Gato: todos los sprites comparten la misma escala de píxel (x4) y se
    alinean por abajo para no «saltar» al cambiar de estado. */
 .cat-box {
-  height: 128px;
+  height: 140px;
   display: flex;
   align-items: flex-end;
   justify-content: center;

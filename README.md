@@ -8,7 +8,7 @@ estilo Windows 11 (Fluent) y tema claro/oscuro automático.
 - **Badge en la barra de herramientas** con los minutos restantes; el ícono es el gato del estado actual (si no carga, un reloj que
   cambia de color según la fase: rojo = estudio, verde = descanso, gris = pausado).
 - **Popup de configuración** (clic en el ícono):
-  - Tiempo de estudio (±5 min) y de descanso (±1 min)
+  - Tiempo de estudio (1, 5, 10 … 60, 75, 90 min) y de descanso (1–5, 10, 15 … 30 min), con escalas fijas
   - Iniciar / Pausar, Saltar fase, Reiniciar
   - Modo **Continuo**: encadena estudio → descanso → estudio…
   - **Usar colores del tema de Zen**: cuando está activado, el popup y el
@@ -20,15 +20,15 @@ estilo Windows 11 (Fluent) y tema claro/oscuro automático.
   - **Sonido de campana** al terminar cada fase (ding-dong sintetizado,
     se puede desactivar)
 - **Gato pixel-art** en el popup con tres estados:
-  - *Estudiando*: echado leyendo mientras corre el estudio.
+  - *Estudiando*: echado leyendo con anteojos; mueve la cola mientras lee.
   - *Esperando*: terminó el estudio. El descanso queda listo pero **no corre**
     hasta que toques **Comenzar descanso** (o `Alt+Shift+P`), para que cierres
     lo que estabas haciendo. El modo Continuo solo aplica al terminar el descanso.
-  - *Descansando*: juega con un ovillo de lana rosa y cada tanto se duerme.
+  - *Descansando*: juega con un ovillo de lana (el ovillo rueda, el hilo ondula, mueve la cola y parpadea).
 - **Gato paseando por la página**: un script inyectado dibuja al gato en el
   borde inferior de cada pestaña (no captura clics). Estudiando y esperando se
-  queda en la esquina con una animación mínima (mueve la cola y parpadea); al descansar camina empujando el ovillo y cada
-  tanto se duerme. Se puede arrastrar con el mouse (mantené el clic sobre él) para sacarlo del medio; doble clic lo devuelve a su lugar. Al terminar el estudio, el gato muestra un globo «¿Ya terminamos?» con una palomita para confirmar y comenzar el descanso. El temporizador y el menú se ocultan solos a los 15 s y su estado abierto/cerrado se comparte entre pestañas. Clic izquierdo sobre el gato muestra el temporizador (mm:ss); clic derecho abre un menú para cambiar los minutos de estudio y descanso e iniciar, pausar, reiniciar la cuenta de la fase actual o pasar a la otra fase (descanso o estudio), que arranca sola. Se desactiva desde el popup. No aparece en páginas internas
+  queda en la esquina con una animación mínima (mueve la cola y parpadea); al descansar juega con el ovillo, lo tira lejos,
+  lo mira en acecho, corre tras él, se estira para atraparlo y lo trae de vuelta. Se puede arrastrar con el mouse (mantené el clic sobre él) para sacarlo del medio; doble clic lo devuelve a su lugar. Al terminar el estudio, el gato muestra un globo «¿Ya terminamos?» con una palomita para confirmar y comenzar el descanso. El temporizador y el menú se ocultan solos a los 15 s y su estado abierto/cerrado se comparte entre pestañas. Clic izquierdo sobre el gato muestra el temporizador (mm:ss); clic derecho abre un menú para cambiar los minutos de estudio y descanso e iniciar, pausar, reiniciar la cuenta de la fase actual o pasar a la otra fase (descanso o estudio), que arranca sola. Se desactiva desde el popup. No aparece en páginas internas
   (`about:*`, nueva pestaña, addons.mozilla.org, visor de PDF).
 - **Notificaciones nativas** al terminar cada fase.
 - **Atajo de teclado**: `Alt+Shift+P` inicia/pausa (configurable en
